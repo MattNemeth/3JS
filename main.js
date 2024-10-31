@@ -3,7 +3,7 @@ import WebGL from 'three/addons/capabilities/WebGL.js';
 
 if ( WebGL.isWebGL2Available() ) {
     const scene =    new THREE.Scene();
-    const camera =   new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+    const camera =   new THREE.PerspectiveCamera( 35, window.innerWidth / window.innerHeight, 0.1, 1000 ); // FOV, aspect ratio, near clip, far clip
     const renderer = new THREE.WebGLRenderer();
 
     renderer.setSize( window.innerWidth, window.innerHeight );
@@ -14,15 +14,27 @@ if ( WebGL.isWebGL2Available() ) {
     const material = new THREE.MeshBasicMaterial( { color: 0xe28743 } );
     const cube =     new THREE.Mesh( geometry, material );
 
-    camera.position.z = 5;
+    camera.position.set(0, 0, 50);
+    camera.lookAt(0, 0, 0);
     scene.add( cube );
 
-    let speedLR = 0.01;
-    let speedUD = 0.02;
+    const points = [];
+    points.push(new THREE.Vector3(-10, 0, 0));
+    points.push(new THREE.Vector3(0, -10, 0));
+    points.push(new THREE.Vector3(10, 0, 0));
+    points.push(new THREE.Vector3(0, 10, 0));
+    points.push(new THREE.Vector3(-10, 0, 0));
+
+    const lineGeometry = new THREE.BufferGeometry().setFromPoints( points );
+    const line = new THREE.Line( lineGeometry, material );
+    scene.add(line);
+
+    let speedLR = 0.02;
+    let speedUD = 0.04;
     let directionLR = -1;
     let directionUD = -1;
-    let limitLR = 2;
-    let limitUD = 2;
+    let limitLR = 5;
+    let limitUD = 5;
 
     function animate() {
         cube.rotation.x += 0.01;
