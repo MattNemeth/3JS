@@ -1,13 +1,17 @@
 import * as THREE from 'three';
 import WebGL from 'three/addons/capabilities/WebGL.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-import { ColorGUIHelper  } from './ColorGUIHelper.js';
-
+// import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
+// import { ColorGUIHelper  } from './ColorGUIHelper.js';
 import floorTexture from './public/checker.png';
+import objFile from './public/block_MN.glb';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { modelDirection } from 'three/webgpu';
+
 
 // WebGL compatibility check
 if ( WebGL.isWebGL2Available() ) {
+
     const fov = 35;
     const aspect = window.innerWidth / window.innerHeight;
     const near = 0.1;
@@ -16,7 +20,7 @@ if ( WebGL.isWebGL2Available() ) {
     // scene and camera
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera( fov, aspect, near, far );
-    camera.position.set(0, 0, 50);
+    camera.position.set(0, 10, 50);
     camera.lookAt(0, 0, 0);
 
     // renderer
@@ -35,8 +39,8 @@ if ( WebGL.isWebGL2Available() ) {
     const planeSize = 40;
 
     // floor texture
-    const loader = new THREE.TextureLoader();
-    const texture = loader.load(floorTexture, () => {
+    const textureLoader = new THREE.TextureLoader();
+    const texture = textureLoader.load(floorTexture, () => {
         //callback when texture loads?
     });
     texture.wrapS = THREE.RepeatWrapping;
@@ -58,114 +62,50 @@ if ( WebGL.isWebGL2Available() ) {
 
 
 
-    // shapes
-    { // cube
-        const cubeSize = 4;
-        const cubeGeo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-        const cubeMat = new THREE.MeshPhongMaterial({color: '#8AC'});
-        const mesh = new THREE.Mesh(cubeGeo, cubeMat);
-        mesh.position.set(cubeSize + 1, cubeSize / 2, 0);
-        scene.add(mesh);
-    }
-    { // sphere
-        const sphereRadius = 3;
-        const sphereWidthDivisions = 32;
-        const sphereHeightDivisions = 16;
-        const sphereGeo = new THREE.SphereGeometry(sphereRadius, sphereWidthDivisions, sphereHeightDivisions);
-        const sphereMat = new THREE.MeshPhongMaterial({color: '#CA8'});
-        const mesh = new THREE.Mesh(sphereGeo, sphereMat);
-        mesh.position.set(-sphereRadius - 1, sphereRadius + 2, 0);
-        scene.add(mesh);
-    }
+    // load MN object
+    const loader = new GLTFLoader(); 
+    loader.load( objFile, function ( gltf ) {
+        const model = gltf.scene;
+
+        model.position.set(0, 6, 0);
+        model.rotation.y = -(Math.PI/2);
+        model.scale.set(10, 10, 10);
+        model.userData.name = 'block_MN';
+        scene.add( model );
+
+        console.log('model', model);
+        // animate(model);
+
+    }, undefined, function ( error ) { 
+        console.error( error ); 
+    });
+
 
 
     //Ambient lighting
     const colorA = 0xFFFFFF;
-    const intensityA = 0.2;
+    const intensityA = 0.5;
     const lightA = new THREE.AmbientLight(colorA, intensityA);
     lightA.position.set(0, 0, 55);
     scene.add(lightA);
 
-    //lightA gui
-    // const gui = new GUI();
-    // gui.addColor(new ColorGUIHelper (lightA, 'color'), 'value').name('color');
-    // gui.add(lightA, 'intensity', 0, 5, 0.01);
-
-
-    // HemisphereLight
-    const skyColor = 0xB1E1FF;  // light blue
-    const groundColor = 0xB97A20;  // brownish orange
-    const intensityH = 0.5;
-    const lightH = new THREE.HemisphereLight(skyColor, groundColor, intensityH);
-    // scene.add(lightH);
-
-    // const gui = new GUI();
-    // gui.addColor(new ColorGUIHelper(lightH, 'color'), 'value').name('skyColor');
-    // gui.addColor(new ColorGUIHelper(lightH, 'groundColor'), 'value').name('groundColor');
-    // gui.add(lightH, 'intensity', 0, 5, 0.01);
-
 
     //DirectionalLight
     const colorD = 0xFFFFFF;
-    const intensityD = 0.5;
+    const intensityD = 0.75;
     const lightD = new THREE.DirectionalLight(colorD, intensityD);
-    lightD.position.set(0, 10, 0);
+    lightD.position.set(0, 10, 5);
     lightD.target.position.set(-5, 0, 0);
     scene.add(lightD);
     scene.add(lightD.target);
 
-    const gui = new GUI();
-    gui.addColor(new ColorGUIHelper(lightD, 'color'), 'value').name('color');
-    gui.add(lightD, 'intensity', 0, 5, 0.01);
-    gui.add(lightD.target.position, 'x', -10, 10);
-    gui.add(lightD.target.position, 'z', -10, 10);
-    gui.add(lightD.target.position, 'y', 0, 10);
-
-
-    
-    const geometry = new THREE.BoxGeometry( 1, 1, 1 );
-    const material = new THREE.MeshBasicMaterial( { color: 0xe28743 } );
-    const cube =     new THREE.Mesh( geometry, material );
-    scene.add( cube );
-
-    const points = [];
-    points.push(new THREE.Vector3(-10, 0, 0));
-    points.push(new THREE.Vector3(0, -10, 0));
-    points.push(new THREE.Vector3(10, 0, 0));
-    points.push(new THREE.Vector3(0, 10, 0));
-    points.push(new THREE.Vector3(-10, 0, 0));
-
-    const lineGeometry = new THREE.BufferGeometry().setFromPoints( points );
-    const line = new THREE.Line( lineGeometry, material );
-    scene.add(line);
-
-    let speedLR = 0.02;
-    let speedUD = 0.04;
-    let directionLR = -1;
-    let directionUD = -1;
-    let limitLR = 5;
-    let limitUD = 5;
 
     function animate() {
-        cube.rotation.x += 0.01;
-        cube.rotation.y += 0.01;
-
-        // Move cube Left and Right
-        if (cube.position.x >= limitLR) {
-            directionLR = -1; // Reverse direction to left
-        } else if (cube.position.x <= -limitLR) {
-            directionLR = 1; // Reverse direction to right
-        }
-
-        // Move cube up and down
-        if (cube.position.y >= limitUD){
-            directionUD = -1; // Reverse direction down
-        } else if (cube.position.y <= -limitUD) {
-            directionUD = 1; // Reverse direction up
-        }
-
-        cube.position.x += (directionLR * speedLR);
-        cube.position.y += (directionUD * speedUD);
+        scene.children.forEach(child => {
+            if (child instanceof THREE.Object3D && child.userData.name == "block_MN") {
+                child.rotation.y += 0.0005;
+            }
+        });
         renderer.render( scene, camera );
     }
 } else {
